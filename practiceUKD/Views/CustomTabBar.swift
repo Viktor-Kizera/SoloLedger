@@ -26,59 +26,78 @@ enum TabItem: Int, CaseIterable {
 
 struct CustomTabBar: View {
     @Binding var selectedTab: TabItem
+    @Environment(\.safeAreaInsets) private var safeAreaInsets
+    
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Білий фон з меншою висотою
-            RoundedRectangle(cornerRadius: 32)
-                .fill(Color.white)
-                .frame(height: 75)
-                .shadow(color: Color.black.opacity(0.08), radius: 8, y: -2)
-                .ignoresSafeArea(edges: .bottom)
-            HStack(alignment: .bottom, spacing: 0) {
-                ForEach(TabItem.allCases, id: \.self) { tab in
-                    if tab == .add {
-                        VStack(spacing: 4) {
-                            Button(action: { selectedTab = .add }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.blue)
-                                        .frame(width: 64, height: 64)
-                                        .shadow(color: Color.black.opacity(0.10), radius: 8, y: 2)
-                                    Image(systemName: tab.icon)
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 30, weight: .bold))
-                                }
-                            }
-                            Text(tab.title)
-                                .font(.system(size: 11))
-                                .foregroundColor(.gray)
-                                .padding(.top, -2)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .offset(y: -18)
-                    } else {
-                        Button(action: { selectedTab = tab }) {
+        VStack(spacing: 0) {
+            Spacer()
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(Color.white)
+                    .frame(height: 75)
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, y: -2)
+                HStack(alignment: .bottom, spacing: 0) {
+                    ForEach(TabItem.allCases, id: \.self) { tab in
+                        if tab == .add {
                             VStack(spacing: 4) {
-                                Image(systemName: tab.icon)
-                                    .font(.system(size: 24, weight: .regular))
-                                    .foregroundColor(selectedTab == tab ? .blue : .gray)
+                                Button(action: { selectedTab = .add }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.blue)
+                                            .frame(width: 64, height: 64)
+                                            .shadow(color: Color.black.opacity(0.10), radius: 8, y: 2)
+                                        Image(systemName: tab.icon)
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 30, weight: .bold))
+                                    }
+                                }
                                 Text(tab.title)
                                     .font(.system(size: 11))
-                                    .foregroundColor(selectedTab == tab ? .blue : .gray)
+                                    .foregroundColor(.gray)
+                                    .padding(.top, -2)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.6)
                             }
                             .frame(maxWidth: .infinity)
+                            .offset(y: -18)
+                        } else {
+                            Button(action: { selectedTab = tab }) {
+                                VStack(spacing: 4) {
+                                    Image(systemName: tab.icon)
+                                        .font(.system(size: 24, weight: .regular))
+                                        .foregroundColor(selectedTab == tab ? .blue : .gray)
+                                    Text(tab.title)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(selectedTab == tab ? .blue : .gray)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.6)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, 4)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
             }
-            .padding(.horizontal, 4)
-            .padding(.top, 8)
-            .padding(.bottom, 8)
+            Color.clear
+                .frame(height: 30)
         }
+        .background(Color.clear)
+    }
+}
+
+private struct SafeAreaInsetsKey: EnvironmentKey {
+    static var defaultValue: EdgeInsets {
+        return EdgeInsets()
+    }
+}
+
+extension EnvironmentValues {
+    var safeAreaInsets: EdgeInsets {
+        get { self[SafeAreaInsetsKey.self] }
+        set { self[SafeAreaInsetsKey.self] = newValue }
     }
 }
 

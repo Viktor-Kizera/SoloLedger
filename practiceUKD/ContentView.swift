@@ -10,25 +10,31 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: TabItem = .home
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case .home:
-                    HomeView()
-                case .analytics:
-                    AnalyticsView()
-                case .add:
-                    AddTransactionView()
-                case .transactions:
-                    TransactionsView()
-                case .settings:
-                    SettingsView()
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                Group {
+                    switch selectedTab {
+                    case .home:
+                        HomeView()
+                    case .analytics:
+                        AnalyticsView()
+                    case .add:
+                        AddTransactionView()
+                    case .transactions:
+                        TransactionsView()
+                    case .settings:
+                        SettingsView()
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                CustomTabBar(selectedTab: $selectedTab)
+                    .background(Color.clear)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 20)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            CustomTabBar(selectedTab: $selectedTab)
+            .edgesIgnoringSafeArea(.bottom)
+            .ignoresSafeArea(.keyboard)
         }
-        .ignoresSafeArea(.keyboard)
     }
 }
 
