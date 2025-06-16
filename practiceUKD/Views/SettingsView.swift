@@ -1,123 +1,208 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var notificationsEnabled = true
+    @State private var showLogoutAlert = false
+    @State private var showLoginView = false
     
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Заголовок
-                Text("Налаштування")
-                    .font(.system(size: 28, weight: .bold))
-                    .padding(.bottom, 16)
-                
-                // Профіль користувача
-                HStack {
-                    // Збільшена іконка для аватарки
-                    ZStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(width: 60, height: 60)
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 24))
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Заголовок
+                    Text("Налаштування")
+                        .font(.system(size: 28, weight: .bold))
+                        .padding(.bottom, 16)
+                    
+                    // Профіль користувача
+                    if let user = authViewModel.currentUser {
+                        // Авторизований користувач
+                        HStack {
+                            // Збільшена іконка для аватарки
+                            ZStack {
+                                Circle()
+                                    .fill(Color.gray.opacity(0.15))
+                                    .frame(width: 60, height: 60)
+                                
+                                if let photoURL = user.photoURL, !photoURL.isEmpty {
+                                    // Тут буде завантаження фото
+                                    // Наразі використовуємо заглушку
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 24))
+                                } else {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 24))
+                                }
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.name)
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text(user.businessType)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 14))
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                        .padding(.bottom, 16)
+                    } else {
+                        // Неавторизований користувач
+                        Button(action: {
+                            showLoginView = true
+                        }) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.15))
+                                        .frame(width: 60, height: 60)
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 24))
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Увійти в акаунт")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Налаштуйте свій профіль")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 14))
+                            }
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                        .padding(.bottom, 16)
                     }
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Олександр Шевченко")
+                    // Мова
+                    SettingsItemView(
+                        icon: "globe",
+                        iconColor: .blue,
+                        title: "Мова",
+                        subtitle: "Українська"
+                    )
+                    .padding(.bottom, 8)
+                    
+                    // Валюта
+                    SettingsItemView(
+                        icon: "banknote",
+                        iconColor: .green,
+                        title: "Валюта",
+                        subtitle: "Гривня (₴)"
+                    )
+                    .padding(.bottom, 8)
+                    
+                    // Сповіщення
+                    HStack {
+                        SettingsIconView(icon: "bell.fill", color: .purple)
+                        
+                        Text("Сповіщення")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("ФОП, 3 група")
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $notificationsEnabled)
+                            .labelsHidden()
                     }
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                    .padding(.bottom, 8)
                     
-                    Spacer()
+                    // Експорт даних
+                    SettingsItemView(
+                        icon: "square.and.arrow.up",
+                        iconColor: .yellow,
+                        title: "Експорт даних",
+                        subtitle: "CSV, Excel"
+                    )
+                    .padding(.bottom, 8)
                     
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 14))
+                    // Безпека
+                    SettingsItemView(
+                        icon: "shield.fill",
+                        iconColor: .red,
+                        title: "Безпека",
+                        subtitle: ""
+                    )
+                    .padding(.bottom, 16)
+                    
+                    // Про додаток
+                    SettingsItemView(
+                        icon: "info.circle.fill",
+                        iconColor: .gray,
+                        title: "Про додаток",
+                        subtitle: ""
+                    )
+                    .padding(.bottom, 8)
+                    
+                    // Підтримка
+                    SettingsItemView(
+                        icon: "headphones",
+                        iconColor: .gray,
+                        title: "Підтримка",
+                        subtitle: ""
+                    )
+                    .padding(.bottom, 16)
+                    
+                    // Вихід з акаунта (тільки для авторизованих користувачів)
+                    if authViewModel.isAuthenticated {
+                        Button(action: {
+                            showLogoutAlert = true
+                        }) {
+                            HStack {
+                                SettingsIconView(icon: "arrow.right.circle", color: .red)
+                                
+                                Text("Вийти з акаунта")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.red)
+                                
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                        }
+                        .alert("Вихід з акаунта", isPresented: $showLogoutAlert) {
+                            Button("Скасувати", role: .cancel) { }
+                            Button("Вийти", role: .destructive) {
+                                authViewModel.signOut()
+                            }
+                        } message: {
+                            Text("Ви впевнені, що хочете вийти з акаунта?")
+                        }
+                    }
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
-                .padding(.bottom, 16)
-                
-                // Мова
-                SettingsItemView(
-                    icon: "globe",
-                    iconColor: .blue,
-                    title: "Мова",
-                    subtitle: "Українська"
-                )
-                .padding(.bottom, 8)
-                
-                // Валюта
-                SettingsItemView(
-                    icon: "banknote",
-                    iconColor: .green,
-                    title: "Валюта",
-                    subtitle: "Гривня (₴)"
-                )
-                .padding(.bottom, 8)
-                
-                // Сповіщення
-                HStack {
-                    SettingsIconView(icon: "bell.fill", color: .purple)
-                    
-                    Text("Сповіщення")
-                        .font(.system(size: 16, weight: .semibold))
-                    
-                    Spacer()
-                    
-                    Toggle("", isOn: $notificationsEnabled)
-                        .labelsHidden()
-                }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
-                .padding(.bottom, 8)
-                
-                // Експорт даних
-                SettingsItemView(
-                    icon: "square.and.arrow.up",
-                    iconColor: .yellow,
-                    title: "Експорт даних",
-                    subtitle: "CSV, Excel"
-                )
-                .padding(.bottom, 8)
-                
-                // Безпека
-                SettingsItemView(
-                    icon: "shield.fill",
-                    iconColor: .red,
-                    title: "Безпека",
-                    subtitle: ""
-                )
-                .padding(.bottom, 16)
-                
-                // Про додаток
-                SettingsItemView(
-                    icon: "info.circle.fill",
-                    iconColor: .gray,
-                    title: "Про додаток",
-                    subtitle: ""
-                )
-                .padding(.bottom, 8)
-                
-                // Підтримка
-                SettingsItemView(
-                    icon: "headphones",
-                    iconColor: .gray,
-                    title: "Підтримка",
-                    subtitle: ""
-                )
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 120)
+                .background(Color(.systemGroupedBackground))
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 120)
-            .background(Color(.systemGroupedBackground))
+            .navigationDestination(isPresented: $showLoginView) {
+                LoginView()
+            }
         }
     }
 }
@@ -175,4 +260,5 @@ struct SettingsIconView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(AuthViewModel())
 } 

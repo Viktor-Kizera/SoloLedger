@@ -1,16 +1,26 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
                 // Привітання та дата
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Привіт, Олександр")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.black)
-                        Text("Понеділок, 14 червня")
+                        if let user = authViewModel.currentUser {
+                            Text("Привіт, \(user.name.components(separatedBy: " ").first ?? user.name)")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.black)
+                        } else {
+                            Text("Привіт, Гість")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.black)
+                        }
+                        
+                        // Отримуємо поточну дату у форматі "День тижня, число місяць"
+                        Text(formattedDate())
                             .font(.system(size: 16, weight: .regular))
                             .foregroundColor(.gray)
                     }
@@ -85,6 +95,23 @@ struct HomeView: View {
             .padding(.bottom, 100)
             .background(Color(.systemGroupedBackground))
         }
+    }
+    
+    // Функція для форматування поточної дати
+    private func formattedDate() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "uk_UA")
+        
+        // Отримуємо день тижня
+        dateFormatter.dateFormat = "EEEE"
+        let weekday = dateFormatter.string(from: Date())
+        
+        // Отримуємо число і місяць
+        dateFormatter.dateFormat = "d MMMM"
+        let dayMonth = dateFormatter.string(from: Date())
+        
+        // Повертаємо у форматі "День тижня, число місяць"
+        return "\(weekday.capitalized), \(dayMonth)"
     }
 }
 
@@ -197,4 +224,5 @@ struct MonthlyBarChartView: View {
 
 #Preview {
     HomeView()
+        .environmentObject(AuthViewModel())
 } 

@@ -27,6 +27,7 @@ enum TabItem: Int, CaseIterable {
 struct CustomTabBar: View {
     @Binding var selectedTab: TabItem
     @Environment(\.safeAreaInsets) private var safeAreaInsets
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -40,17 +41,35 @@ struct CustomTabBar: View {
                     ForEach(TabItem.allCases, id: \.self) { tab in
                         if tab == .add {
                             VStack(spacing: 4) {
-                                Button(action: { selectedTab = .add }) {
+                                Button(action: { 
+                                    // Встановлюємо вкладку .add - логіка авторизації обробляється в ContentView
+                                    selectedTab = .add
+                                }) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color.blue)
+                                            .fill(authViewModel.isAuthenticated ? Color.blue : Color.blue.opacity(0.6))
                                             .frame(width: 64, height: 64)
                                             .shadow(color: Color.black.opacity(0.10), radius: 8, y: 2)
-                                        Image(systemName: tab.icon)
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 30, weight: .bold))
+                                        
+                                        if authViewModel.isAuthenticated {
+                                            Image(systemName: tab.icon)
+                                                .foregroundColor(.white)
+                                                .font(.system(size: 30, weight: .bold))
+                                        } else {
+                                            ZStack {
+                                                Image(systemName: tab.icon)
+                                                    .foregroundColor(.white)
+                                                    .font(.system(size: 30, weight: .bold))
+                                                
+                                                Image(systemName: "lock.fill")
+                                                    .foregroundColor(.white)
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .offset(x: 12, y: -12)
+                                            }
+                                        }
                                     }
                                 }
+                                
                                 Text(tab.title)
                                     .font(.system(size: 11))
                                     .foregroundColor(.gray)
@@ -103,4 +122,5 @@ extension EnvironmentValues {
 
 #Preview {
     CustomTabBar(selectedTab: .constant(.home))
+        .environmentObject(AuthViewModel())
 } 
