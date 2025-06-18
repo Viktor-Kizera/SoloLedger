@@ -566,26 +566,30 @@ struct IncomeExpenseChartView: View {
     let maxIncome: Double
     let maxExpense: Double
     
-    // Функція для форматування сум на осі Y
+    @State private var selectedBar: Int? = nil
+    @State private var animateBars: Bool = false
+    
+    // Форматування підписів X-осі
+    private func formatXAxisLabel(_ label: String, index: Int) -> String {
+        return "Тиждень \(index + 1)"
+    }
+    
+    // Форматування сум на осі Y
     private func formatYAxisLabels(maxValue: Double) -> [String] {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencySymbol = "₴"
         formatter.maximumFractionDigits = 0
-        
-        // Визначаємо крок для осі Y
         let step = maxValue / 5
         var labels: [String] = []
-        
         for i in 0...5 {
             let value = step * Double(i)
             if value >= 1000 {
-                labels.append("\(formatter.string(from: NSNumber(value: value / 1000)) ?? "")K")
+                labels.append("₴\(Int(value/1000))K")
             } else {
-                labels.append(formatter.string(from: NSNumber(value: value)) ?? "")
+                labels.append("₴\(Int(value))")
             }
         }
-        
         return labels.reversed()
     }
     
@@ -593,15 +597,15 @@ struct IncomeExpenseChartView: View {
         let maxValue = max(maxIncome, maxExpense)
         let yLabels = formatYAxisLabels(maxValue: maxValue)
         
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             // Y-осі
             HStack(spacing: 0) {
                 VStack(alignment: .trailing, spacing: 8) {
                     ForEach(yLabels, id: \.self) { label in
-                        Text(label).font(.system(size: 12)).foregroundColor(.gray)
+                        Text(label).font(.system(size: 13, weight: .medium)).foregroundColor(.gray.opacity(0.7))
                     }
                 }
-                .frame(width: 40)
+                .frame(width: 44)
                 
                 // Графік
                 ZStack(alignment: .bottom) {
@@ -609,51 +613,95 @@ struct IncomeExpenseChartView: View {
                     VStack(spacing: 16) {
                         ForEach(0..<6) { _ in
                             Rectangle()
-                                .fill(Color.gray.opacity(0.1))
+                                .fill(Color.gray.opacity(0.11))
                                 .frame(height: 1)
                         }
                     }
-                    
                     // Стовпчики
-                    HStack(alignment: .bottom, spacing: 20) {
+                    HStack(alignment: .bottom, spacing: 14) {
                         ForEach(0..<incomeData.count, id: \.self) { index in
                             if index < incomeData.count && index < expenseData.count {
-                                HStack(spacing: 5) {
-                                    // Дохід
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.green)
-                                        .frame(width: 20, height: maxValue > 0 ? CGFloat(incomeData[index].1 / CGFloat(maxValue)) * 180 : 2)
-                                    
-                                    // Витрати
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.red)
-                                        .frame(width: 20, height: maxValue > 0 ? CGFloat(expenseData[index].1 / CGFloat(maxValue)) * 180 : 2)
+                                ZStack {
+                                    // Підказка
+                                    if selectedBar == index {
+                                        VStack(spacing: 4) {
+                                            if incomeData[index].1 > 0 {
+                                                Text("₴\(Int(incomeData[index].1))")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(.green)
+                                                    .padding(6)
+                                                    .background(Color.white)
+                                                    .cornerRadius(8)
+                                                    .shadow(color: Color.green.opacity(0.15), radius: 4, y: 2)
+                                            }
+                                            if expenseData[index].1 > 0 {
+                                                Text("₴\(Int(expenseData[index].1))")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(.red)
+                                                    .padding(6)
+                                                    .background(Color.white)
+                                                    .cornerRadius(8)
+                                                    .shadow(color: Color.red.opacity(0.15), radius: 4, y: 2)
+                                            }
+                                        }
+                                        .offset(y: -110)
+                                        .zIndex(2)
+                                    }
+                                    HStack(spacing: 8) {
+                                        // Дохід
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(LinearGradient(
+                                                gradient: Gradient(colors: [Color.green.opacity(0.7), Color.green]),
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            ))
+                                            .frame(width: 20, height: animateBars ? (maxValue > 0 ? CGFloat(incomeData[index].1 / CGFloat(maxValue)) * 160 : 0) : 0)
+                                            .shadow(color: Color.green.opacity(0.18), radius: 6, x: 0, y: 4)
+                                            .animation(.spring(response: 0.7, dampingFraction: 0.7), value: animateBars)
+                                            .onTapGesture { selectedBar = index }
+                                        // Витрати
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(LinearGradient(
+                                                gradient: Gradient(colors: [Color.red.opacity(0.7), Color.red]),
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            ))
+                                            .frame(width: 20, height: animateBars ? (maxValue > 0 ? CGFloat(expenseData[index].1 / CGFloat(maxValue)) * 160 : 0) : 0)
+                                            .shadow(color: Color.red.opacity(0.18), radius: 6, x: 0, y: 4)
+                                            .animation(.spring(response: 0.7, dampingFraction: 0.7), value: animateBars)
+                                            .onTapGesture { selectedBar = index }
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            
             // X-осі
             HStack(spacing: 0) {
                 Rectangle()
                     .fill(Color.clear)
-                    .frame(width: 40)
-                
-                HStack(spacing: 20) {
+                    .frame(width: 44)
+                HStack(spacing: 14) {
                     ForEach(0..<incomeData.count, id: \.self) { index in
                         if index < incomeData.count {
-                            Text(incomeData[index].0)
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
-                                .frame(width: 45, alignment: .center)
+                            Text(formatXAxisLabel(incomeData[index].0, index: index))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.black.opacity(0.8))
+                                .frame(width: 54, alignment: .center)
+                                .minimumScaleFactor(0.7)
+                                .lineLimit(1)
+                                .layoutPriority(1)
                         }
                     }
                 }
             }
         }
-        .frame(height: 200)
+        .frame(height: 220)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+        .onAppear { animateBars = true }
     }
 }
 
@@ -963,6 +1011,139 @@ struct MonthPickerView: View {
     // Форматування року без розділювачів груп
     private func formatYear(_ year: Int) -> String {
         return String(year)
+    }
+}
+
+struct MonthMultiPickerView: View {
+    @Binding var isPresented: Bool
+    @Binding var selectedMonths: [Date]
+    let availableYears: [Int]
+    @State private var currentYear: Int
+    let onApply: () -> Void
+    
+    init(isPresented: Binding<Bool>, selectedMonths: Binding<[Date]>, availableYears: [Int], onApply: @escaping () -> Void) {
+        self._isPresented = isPresented
+        self._selectedMonths = selectedMonths
+        self.availableYears = availableYears
+        self._currentYear = State(initialValue: availableYears.last ?? Calendar.current.component(.year, from: Date()))
+        self.onApply = onApply
+    }
+    
+    private let monthsNames = [
+        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+    ]
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Вибір року
+                HStack {
+                    Button(action: {
+                        if let prev = availableYears.lastIndex(of: currentYear), prev > 0 {
+                            currentYear = availableYears[prev - 1]
+                        }
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(currentYear > (availableYears.min() ?? 2000) ? .blue : .gray.opacity(0.3))
+                    }
+                    Spacer()
+                    Text("\(currentYear)")
+                        .font(.system(size: 22, weight: .bold))
+                    Spacer()
+                    Button(action: {
+                        if let next = availableYears.firstIndex(of: currentYear), next < availableYears.count - 1 {
+                            currentYear = availableYears[next + 1]
+                        }
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(currentYear < (availableYears.max() ?? 2100) ? .blue : .gray.opacity(0.3))
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Сітка місяців
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                    ForEach(0..<12) { month in
+                        let date = Calendar.current.date(from: DateComponents(year: currentYear, month: month + 1, day: 1))!
+                        let isSelected = selectedMonths.contains(where: { Calendar.current.isDate($0, equalTo: date, toGranularity: .month) && Calendar.current.isDate($0, equalTo: date, toGranularity: .year) })
+                        Button(action: {
+                            if isSelected {
+                                selectedMonths.removeAll(where: { Calendar.current.isDate($0, equalTo: date, toGranularity: .month) && Calendar.current.isDate($0, equalTo: date, toGranularity: .year) })
+                            } else {
+                                selectedMonths.append(date)
+                            }
+                        }) {
+                            Text(monthsNames[month])
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(isSelected ? .white : .blue)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .background(isSelected ? Color.blue : Color.blue.opacity(0.08))
+                                .cornerRadius(12)
+                                .shadow(color: isSelected ? Color.blue.opacity(0.18) : .clear, radius: 4, y: 2)
+                        }
+                        .animation(.easeInOut(duration: 0.15), value: isSelected)
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Фільтри
+                HStack(spacing: 10) {
+                    Button("Весь рік") {
+                        selectedMonths = (1...12).compactMap { m in Calendar.current.date(from: DateComponents(year: currentYear, month: m, day: 1)) }
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.13)).cornerRadius(10)
+                    
+                    Button("Останні 6 міс.") {
+                        let now = Date()
+                        selectedMonths = (0..<6).compactMap { i in Calendar.current.date(byAdding: .month, value: -i, to: now) }
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.13)).cornerRadius(10)
+                    
+                    Button("Весь час") {
+                        let all = availableYears.flatMap { y in (1...12).compactMap { m in Calendar.current.date(from: DateComponents(year: y, month: m, day: 1)) } }
+                        selectedMonths = all
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.13)).cornerRadius(10)
+                    
+                    Button("Скинути") {
+                        selectedMonths = []
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.13)).cornerRadius(10)
+                }
+                .padding(.top, 8)
+                
+                Spacer()
+                
+                Button(action: {
+                    isPresented = false
+                    onApply()
+                }) {
+                    Text("Показати")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(selectedMonths.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                        .cornerRadius(14)
+                }
+                .disabled(selectedMonths.isEmpty)
+                .padding(.horizontal)
+                .padding(.bottom, 16)
+            }
+            .navigationTitle("Вибір місяців")
+            .navigationBarItems(trailing: Button("Скасувати") { isPresented = false })
+        }
     }
 }
 
