@@ -28,6 +28,7 @@ struct CustomTabBar: View {
     @Binding var selectedTab: TabItem
     @Environment(\.safeAreaInsets) private var safeAreaInsets
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var transactionViewModel: TransactionViewModel
     
     var body: some View {
         VStack(spacing: 0) {
@@ -123,4 +124,5 @@ extension EnvironmentValues {
 #Preview {
     CustomTabBar(selectedTab: .constant(.home))
         .environmentObject(AuthViewModel())
+        .environmentObject(TransactionViewModel())
 } 

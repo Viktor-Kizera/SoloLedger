@@ -1,106 +1,181 @@
 import SwiftUI
 
 struct TransactionsView: View {
+    @EnvironmentObject var transactionViewModel: TransactionViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedFilter: TransactionFilter = .all
     
-    // Спрощені дані для транзакцій
-    let transactionGroups: [TransactionGroup] = [
-        TransactionGroup(
-            title: "Сьогодні",
-            totalAmount: 12150,
-            transactions: [
-                Transaction(title: "Розробка веб-сайту", date: "14 червня, 2023", amount: 12500, isIncome: true, category: "development"),
-                Transaction(title: "Обід", date: "14 червня, 2023", amount: 350, isIncome: false, category: "food")
-            ]
-        ),
-        TransactionGroup(
-            title: "Вчора",
-            totalAmount: 4500,
-            transactions: [
-                Transaction(title: "Консультація", date: "13 червня, 2023", amount: 4500, isIncome: true, category: "consulting")
-            ]
-        ),
-        TransactionGroup(
-            title: "12 червня",
-            totalAmount: 10700,
-            transactions: [
-                Transaction(title: "Дизайн логотипу", date: "12 червня, 2023", amount: 8200, isIncome: true, category: "design"),
-                Transaction(title: "Інтернет", date: "12 червня, 2023", amount: 500, isIncome: false, category: "internet")
-            ]
-        )
-    ]
-    
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 24) {
-                // Заголовок
-                HStack {
-                    Text("Транзакції")
-                        .font(.system(size: 28, weight: .bold))
-                    
-                    Spacer()
-                    
-                    ZStack {
-                        Circle()
-                            .fill(Color.blue.opacity(0.15))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: "line.3.horizontal.decrease")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 20, weight: .bold))
-                    }
-                }
-                
-                // Фільтри
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        FilterButton(title: "Усі", isSelected: selectedFilter == .all) {
-                            selectedFilter = .all
-                        }
-                        FilterButton(title: "Дохід", isSelected: selectedFilter == .income) {
-                            selectedFilter = .income
-                        }
-                        FilterButton(title: "Витрати", isSelected: selectedFilter == .expense) {
-                            selectedFilter = .expense
-                        }
-                        FilterButton(title: "Цей місяць", isSelected: selectedFilter == .thisMonth) {
-                            selectedFilter = .thisMonth
-                        }
-                    }
-                }
-                
-                // Список транзакцій по групах
-                ForEach(transactionGroups, id: \.id) { group in
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Заголовок дати та сума
-                        HStack {
-                            Text(group.title)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Text("₴\(formatAmount(group.totalAmount))")
-                                .font(.system(size: 18, weight: .semibold))
-                        }
+        ZStack {
+            Color(.systemGroupedBackground)
+                .edgesIgnoringSafeArea(.all)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Заголовок
+                    HStack {
+                        Text("Транзакції")
+                            .font(.system(size: 28, weight: .bold))
                         
-                        // Транзакції за цю дату
-                        ForEach(group.transactions, id: \.id) { transaction in
-                            TransactionRowView(transaction: transaction)
+                        Spacer()
+                        
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "line.3.horizontal.decrease")
+                                .foregroundColor(.blue)
+                                .font(.system(size: 20, weight: .bold))
                         }
                     }
+                    
+                    // Фільтри
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            FilterButton(title: "Усі", isSelected: selectedFilter == .all) {
+                                selectedFilter = .all
+                            }
+                            FilterButton(title: "Дохід", isSelected: selectedFilter == .income) {
+                                selectedFilter = .income
+                            }
+                            FilterButton(title: "Витрати", isSelected: selectedFilter == .expense) {
+                                selectedFilter = .expense
+                            }
+                            FilterButton(title: "Цей місяць", isSelected: selectedFilter == .thisMonth) {
+                                selectedFilter = .thisMonth
+                            }
+                        }
+                    }
+                    
+                    if let userId = authViewModel.currentUser?.id {
+                        // Отримуємо транзакції відповідно до фільтра
+                        let filteredTransactions: [TransactionModel] = {
+                            switch selectedFilter {
+                            case .all:
+                                return transactionViewModel.getUserTransactions(userId: userId)
+                            case .income:
+                                return transactionViewModel.getTransactionsByType(userId: userId, isIncome: true)
+                            case .expense:
+                                return transactionViewModel.getTransactionsByType(userId: userId, isIncome: false)
+                            case .thisMonth:
+                                return transactionViewModel.getTransactionsForCurrentMonth(userId: userId)
+                            }
+                        }()
+                        
+                        if filteredTransactions.isEmpty {
+                            // Показуємо повідомлення, якщо немає транзакцій
+                            VStack(spacing: 20) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
+                                Text("Немає транзакцій")
+                                    .font(.title2)
+                                    .foregroundColor(.gray)
+                                Text("Додайте свою першу транзакцію, натиснувши на кнопку '+' внизу екрану")
+                                    .font(.body)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 50)
+                        } else {
+                            // Групуємо транзакції за датою
+                            let groupedTransactions = transactionViewModel.groupTransactionsByDate(transactions: filteredTransactions)
+                            let sortedDates = groupedTransactions.keys.sorted { date1, date2 in
+                                // Сортуємо дати у зворотньому порядку (нові спочатку)
+                                let formatter = DateFormatter()
+                                formatter.locale = Locale(identifier: "uk_UA")
+                                formatter.dateFormat = "d MMMM, yyyy"
+                                guard let date1Date = formatter.date(from: date1),
+                                      let date2Date = formatter.date(from: date2) else {
+                                    return date1 > date2 // Сортуємо за рядками, якщо не вдалося перетворити
+                                }
+                                return date1Date > date2Date
+                            }
+                            
+                            ForEach(sortedDates, id: \.self) { dateString in
+                                if let transactions = groupedTransactions[dateString] {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // Заголовок дати та сума
+                                        HStack {
+                                            Text(formatDateHeader(dateString))
+                                                .font(.system(size: 18, weight: .medium))
+                                                .foregroundColor(.gray)
+                                            Spacer()
+                                            Text(formatTotalAmount(transactions))
+                                                .font(.system(size: 18, weight: .semibold))
+                                        }
+                                        
+                                        // Транзакції за цю дату
+                                        ForEach(transactions) { transaction in
+                                            TransactionRowView(transaction: transaction)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Користувач не авторизований
+                        VStack(spacing: 20) {
+                            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            Text("Увійдіть в акаунт")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                            Text("Щоб переглядати транзакції, необхідно увійти в акаунт або зареєструватися")
+                                .font(.body)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 50)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 120)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 120)
-            .background(Color(.systemGroupedBackground))
         }
     }
     
-    // Функція для форматування суми
-    func formatAmount(_ amount: Double) -> String {
+    // Форматування заголовка дати (сьогодні, вчора, або дата)
+    private func formatDateHeader(_ dateString: String) -> String {
+        let today = formatDate(Date())
+        let yesterday = formatDate(Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
+        
+        if dateString == today {
+            return "Сьогодні"
+        } else if dateString == yesterday {
+            return "Вчора"
+        } else {
+            return dateString
+        }
+    }
+    
+    // Форматування дати
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "uk_UA")
+        formatter.dateFormat = "d MMMM, yyyy"
+        return formatter.string(from: date)
+    }
+    
+    // Форматування загальної суми
+    private func formatTotalAmount(_ transactions: [TransactionModel]) -> String {
+        let total = transactions.reduce(0) { sum, transaction in
+            transaction.isIncome ? sum + transaction.amount : sum - transaction.amount
+        }
+        
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 2
+        
+        let formattedAmount = formatter.string(from: NSNumber(value: abs(total))) ?? "\(abs(total))"
+        return total >= 0 ? "+₴\(formattedAmount)" : "-₴\(formattedAmount)"
     }
 }
 
@@ -108,50 +183,41 @@ enum TransactionFilter {
     case all, income, expense, thisMonth
 }
 
-struct TransactionGroup: Identifiable {
-    let id = UUID()
-    let title: String
-    let totalAmount: Double
-    let transactions: [Transaction]
-}
-
-struct Transaction: Identifiable {
-    let id = UUID()
-    let title: String
-    let date: String
-    let amount: Double
-    let isIncome: Bool
-    let category: String
-}
-
 struct TransactionRowView: View {
-    let transaction: Transaction
+    let transaction: TransactionModel
     
     var body: some View {
         HStack(spacing: 14) {
             // Іконка категорії
             ZStack {
                 Circle()
-                    .fill(categoryColor.opacity(0.15))
+                    .fill(transaction.category.getColor().opacity(0.15))
                     .frame(width: 44, height: 44)
-                Image(systemName: categoryIcon)
-                    .foregroundColor(categoryColor)
-                    .font(.system(size: 20, weight: .bold))
+                Text(transaction.category.icon)
+                    .font(.system(size: 20))
             }
             
             // Назва та дата
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.title)
                     .font(.system(size: 16, weight: .semibold))
-                Text(transaction.date)
+                Text(transaction.formattedDate())
                     .font(.system(size: 13))
                     .foregroundColor(.gray)
+                
+                // Примітка (якщо є)
+                if let note = transaction.note, !note.isEmpty {
+                    Text(note)
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray.opacity(0.8))
+                        .lineLimit(1)
+                }
             }
             
             Spacer()
             
             // Сума
-            Text(amountText)
+            Text(transaction.formattedAmount())
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(transaction.isIncome ? .green : .red)
         }
@@ -159,39 +225,6 @@ struct TransactionRowView: View {
         .background(Color.white)
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
-    }
-    
-    // Колір для категорії
-    var categoryColor: Color {
-        switch transaction.category {
-        case "development": return .green
-        case "food": return .red
-        case "consulting": return .blue
-        case "design": return .yellow
-        case "internet": return .purple
-        default: return .gray
-        }
-    }
-    
-    // Іконка для категорії
-    var categoryIcon: String {
-        switch transaction.category {
-        case "development": return "bag.fill"
-        case "food": return "fork.knife"
-        case "consulting": return "creditcard"
-        case "design": return "pencil"
-        case "internet": return "wifi"
-        default: return "circle"
-        }
-    }
-    
-    // Текст для суми
-    var amountText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        let formattedAmount = formatter.string(from: NSNumber(value: transaction.amount)) ?? "\(transaction.amount)"
-        return transaction.isIncome ? "+₴\(formattedAmount)" : "-₴\(formattedAmount)"
     }
 }
 
@@ -217,4 +250,6 @@ struct FilterButton: View {
 
 #Preview {
     TransactionsView()
+        .environmentObject(TransactionViewModel())
+        .environmentObject(AuthViewModel())
 } 
